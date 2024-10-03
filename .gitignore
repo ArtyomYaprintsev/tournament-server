@@ -1,0 +1,29 @@
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Backup files
+*.bak
+
+# Environment
+venv/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__
+db.sqlite3
+
+# local
+*.local
+db.sqlite3
+openapi.json
