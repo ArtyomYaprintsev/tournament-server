@@ -1,0 +1,9 @@
+# TODO: describe each package
+
+django
+django-cors-headers
+
+djangorestframework
+drf-spectacular
+
+Pillow
