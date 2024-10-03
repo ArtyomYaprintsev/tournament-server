@@ -49,13 +49,7 @@ Install requirements
 pip install -r requirements.dev.txt
 ```
 
-Install gitlint:
-
-```bash
-gitlint install-hook
-```
-
-### Code and commit style
+### Code style
 
 Check commit style:
 
