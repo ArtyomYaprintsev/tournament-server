@@ -19,7 +19,7 @@ class DefaultModel(models.Model):
         return super().__str__()
     
 
-def validator_avatar_size(file) -> None:
+def validator_avatar_weight(file: Any) -> None:
     """Валидатор размера файла для изображений."""
     limit = 5 * 1024 * 1024
     if file.size > limit:
@@ -27,7 +27,6 @@ def validator_avatar_size(file) -> None:
 
 
 class User(AbstractUser):
-
     class GENDERS(TextChoices):
         MALE = 'male', 'Male'
         FEMALE = 'female', 'Female'
@@ -35,7 +34,7 @@ class User(AbstractUser):
     gender = models.CharField(
         max_length=6,
         choices=GENDERS.choices,
-        default=False,
+        default=False, #?
         )
     avatar = models.ImageField(
         verbose_name='Avatar',
@@ -44,7 +43,7 @@ class User(AbstractUser):
         blank=True,
         validators=[
             FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png']),
-            validator_avatar_size,
+            validator_avatar_weight,
         ]
     )
     is_verified = models.BooleanField(default=True)
@@ -65,9 +64,55 @@ class User(AbstractUser):
                 raise ValidationError('пиздец!')
 
 
-
 class Team(models.Model, DefaultModel):
-    pass
+    class STATUS(TextChoices):
+        ACTIVE = 'active', 'Active'
+        AWAITING = 'awaiting', 'Awaiting'
+        DISBANED = 'disbanded', 'Disbanded'
+
+    name = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Название команды',
+        )
+    creator = models.ForeignKey(
+        User,
+        related_name='teams_created',
+        on_delete=models.CASCADE,
+        verbose_name='Создатель команды',
+    )
+    participant = models.ForeignKey(
+        User,
+        related_name='teams_invited',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Приграшенный участник',
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS.choices,
+        default=STATUS.AWAITING,
+        verbose_name='Статус команды',
+    )
+    description = models.CharField(
+        max_length=250,
+        default='',
+        blank=True,
+        verbose_name='Описание команды',
+    )
+    date_created = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата создания команды',
+    )
+    date_disbanded = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Дата роспуска команды',
+    )
+
+
+    
 
 
 class Tournament(models.Model):
