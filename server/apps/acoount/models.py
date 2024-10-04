@@ -61,7 +61,7 @@ class User(AbstractUser):
                     image.thumbnail(max_size)
                     image.save(self.avatar.path)
             except Exception as e:
-                raise ValidationError('пиздец!')
+                raise ValidationError('Image size error')
 
 
 class Team(models.Model, DefaultModel):
@@ -75,19 +75,11 @@ class Team(models.Model, DefaultModel):
         unique=True,
         verbose_name='Название команды',
         )
-    creator = models.ForeignKey(
+    members = models.ManyToManyField(
         User,
-        related_name='teams_created',
-        on_delete=models.CASCADE,
-        verbose_name='Создатель команды',
-    )
-    participant = models.ForeignKey(
-        User,
-        related_name='teams_invited',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name='Приграшенный участник',
+        through='TeamMembership',
+        related_name='teams',
+        verbose_name='Участники команды',
     )
     status = models.CharField(
         max_length=10,
@@ -110,9 +102,39 @@ class Team(models.Model, DefaultModel):
         blank=True,
         verbose_name='Дата роспуска команды',
     )
+    class Meta:
+        verbose_name='Команда'
+        verbose_name_plural='Команды'
 
+class TeamMembership(models.Model):
+    class ROLECHOICES(TextChoices):
+        CREATOR = 'creator', 'Creator'
+        PARTICIPANT = 'participant', 'Participant'
 
-    
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        related_name='membership',
+        )
+    user =  models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='membership',
+    )
+    role = models.CharField(
+        max_length=10,
+        choices=ROLECHOICES.choices,
+        default=ROLECHOICES.CREATOR,
+        verbose_name='Роль в команде',
+    )
+    date_joined = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата регистрации в команде',
+    )
+    class Meta:
+        unique_together = ('team', 'user')
+        verbose_name='Участник команды'
+        verbose_name_plural='Участники команды'
 
 
 class Tournament(models.Model):
