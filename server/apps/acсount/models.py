@@ -18,6 +18,7 @@ class DefaultModel(models.Model):
             return str(name)
         return super().__str__()
     
+    
 
 def validator_avatar_weight(file: Any) -> None:
     """Валидатор размера файла для изображений."""
