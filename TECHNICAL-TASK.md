@@ -97,6 +97,19 @@ An authentication token is required for all endpoints (exclude GET `/teams/<team
     - available GET parameters:
         - `name`: search teams instances that starts with received `name`.
     - expected fields: id, avatar, name, description, member1, member2, date_created, date_disbanded.
+- GET `/teams/availability/users/check/`: verify that provided by parameter user can be added to the new team with the current user (return )
+    - required GET parameter:
+        - `user_id`: the user id;
+    - endpoint usage case: before creating a new team instance using frontend app, the user must select another user from the users list. After selection any user instance, this endpoint should be called (`/teams/availability/users/check/?user_id=<user_id>`) to verify that the current user can be added to a new team with the selected user; 
+    - user unavailable cases:
+        - already exists WAITING or ACTIVE team with current user and selected user (member1 or member2);
+        - exists DISBANDED team that was disbanded less than a week ago (date_disbanded).
+    - return object like: {"is_available": bool}
+- GET `/teams/availability/tournaments/`: get 
+    - required GET parameter:
+        - `tournament_id`: the tournament id;
+    - endpoints usage case: before the team registration run 
+    -
 - POST `/teams/`: create new team instance
     - additional validation rules:
         - does not exist WAITING or ACTIVE teams with save member1 and member2
