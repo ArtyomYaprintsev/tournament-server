@@ -1,10 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.db.models import TextChoices
+from django.db.models import TextChoices, QuerySet
 from PIL import Image
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
-from typing import Any, QuerySet
+from typing import Any
 from django.utils import timezone
 
 
@@ -145,7 +145,7 @@ class Team(models.Model, DefaultModel):
         self.date_disbanded = timezone.now()
         self.save()
 
-    def get_members(self) -> QuerySet:
+    def get_members(self) -> QuerySet[Any]:
         """Возвращает QuerySet участников команды."""
         return self.membership.select_related('user').all()
         
