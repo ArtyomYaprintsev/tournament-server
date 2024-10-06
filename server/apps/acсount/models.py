@@ -105,26 +105,60 @@ class Team(models.Model):
             f'Пользователь {user.username} уже в команде'
         )
 
-    def remove_member(self, user: User) -> None:
+    def is_creator(self, user: User) -> bool:
+        """Проверяет, является ли пользователь создателем команды."""
+        try:
+            membership = TeamMembership.objects.get(team=self, user=user)
+            return membership.role == self.ROLECHOICES.CREATOR
+        except TeamMembership.DoesNotExist:
+            return False
+
+    def remove_member(
+            self,
+            user_to_remover: User,
+            current_user: User
+    ) -> None:
         """
         Удаляет пользователя из команды.
         Если пользователь не в команде, выдает исключение.
+        Только для создателей команды.
         """
+        if not self.is_creator(current_user):
+            raise ValidationError('Вы не являетесь создателем команды')
+        if user_to_remover == current_user:
+            raise ValidationError('Вы не можете удалить себя')
         try:
-            member = TeamMembership.objects.get(team=self, user=user)
+            member = TeamMembership.objects.get(
+                team=self,
+                user=user_to_remover
+            )
             member.delete()
         except TeamMembership.DoesNotExist:
             raise ValidationError(
-                f'Пользователь {user.username} не в команде'
+                f'Пользователь {user_to_remover.username} не в команде'
             )
     
-    def set_status_active(self) -> None:
-        """ Устанавливает статус команды ACTIVE."""
+    def set_status_active(self, current_user: User) -> None:
+        """
+        Устанавливает статус команды ACTIVE.
+        Только для создателей команды.
+        """
+        if not self.is_creator(current_user):
+            raise ValidationError('Вы не являетесь создателем команды')
+        if self.status == self.STATUS.ACTIVE:
+            raise ValidationError('Статус уже установлен')
         self.status = self.STATUS.ACTIVE
         self.save()
 
-    def set_status_disbanded(self) -> None:
-        """ Устанавливает статус команды DISBANED."""
+    def set_status_disbanded(self, current_user: User) -> None:
+        """
+        Устанавливает статус команды DISBANED.
+        Только для создателей команды.
+        """
+        if not self.is_creator(current_user):
+            raise ValidationError('Вы не являетесь создателем команды')
+        if self.status == self.STATUS.DISBANED:
+            raise ValidationError('Статус уже установлен')
         self.status = self.STATUS.DISBANED
         self.date_disbanded = timezone.now()
         self.save()
