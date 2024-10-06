@@ -6,22 +6,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from typing import Any
 from django.utils import timezone
-
-
-class DefaultModel(models.Model):
-    """
-    Абстрактный базовый класс модели,
-    предоставляющий строковое представление.
-    """
-    class Meta:
-        abstract = True
-
-    def __str__(self) -> str:
-        name = getattr(self, 'name', None)
-        if name is not None:
-            return str(name)
-        return super().__str__()
-    
     
 
 def validator_avatar_weight(file: Any) -> None:
@@ -68,7 +52,7 @@ class User(AbstractUser):
                 raise ValidationError('Image size error')
 
 
-class Team(models.Model, DefaultModel):
+class Team(models.Model):
     class STATUS(TextChoices):
         ACTIVE = 'active', 'Active'
         AWAITING = 'awaiting', 'Awaiting'
