@@ -4,11 +4,15 @@ from django.db.models import TextChoices
 from PIL import Image
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
-from typing import Any
+from typing import Any, QuerySet
+from django.utils import timezone
 
 
 class DefaultModel(models.Model):
-    """Абстрактный базовый класс модели, предоставляющий строковое представление."""
+    """
+    Абстрактный базовый класс модели,
+    предоставляющий строковое представление.
+    """
     class Meta:
         abstract = True
 
@@ -35,7 +39,7 @@ class User(AbstractUser):
     gender = models.CharField(
         max_length=6,
         choices=GENDERS.choices,
-        default=False, #?
+        default=GENDERS.MALE,
         )
     avatar = models.ImageField(
         verbose_name='Avatar',
@@ -49,7 +53,6 @@ class User(AbstractUser):
     )
     is_verified = models.BooleanField(default=True)
     rating = models.IntegerField(default=0)
-
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Метод для сохранения изображения."""
@@ -106,6 +109,47 @@ class Team(models.Model, DefaultModel):
     class Meta:
         verbose_name='Команда'
         verbose_name_plural='Команды'
+    
+    def add_member(self, user: User, reole: str = 'participant') -> None:
+        """ 
+        Добавляет пользователя в команду.
+        Если пользователь уже в команде, выбрасывает исключение.
+        """
+        if not TeamMembership.objects.filter(team=self, user=user).exists():
+            TeamMembership.objects.create(team=self, user=user, reole=reole)
+        raise ValidationError(
+            f'Пользователь {user.username} уже в команде'
+        )
+
+    def remove_member(self, user: User) -> None:
+        """
+        Удаляет пользователя из команды.
+        Если пользователь не в команде, выдает исключение.
+        """
+        try:
+            member = TeamMembership.objects.get(team=self, user=user)
+            member.delete()
+        except TeamMembership.DoesNotExist:
+            raise ValidationError(
+                f'Пользователь {user.username} не в команде'
+            )
+    
+    def set_status_active(self) -> None:
+        """ Устанавливает статус команды ACTIVE."""
+        self.status = self.STATUS.ACTIVE
+        self.save()
+
+    def set_status_disbanded(self) -> None:
+        """ Устанавливает статус команды DISBANED."""
+        self.status = self.STATUS.DISBANED
+        self.date_disbanded = timezone.now()
+        self.save()
+
+    def get_members(self) -> QuerySet:
+        """Возвращает QuerySet участников команды."""
+        return self.membership.select_related('user').all()
+        
+
 
 class TeamMembership(models.Model):
     class ROLECHOICES(TextChoices):
@@ -136,11 +180,3 @@ class TeamMembership(models.Model):
         unique_together = ('team', 'user')
         verbose_name='Участник команды'
         verbose_name_plural='Участники команды'
-
-
-class Tournament(models.Model):
-    pass
-
-
-class TournamentTeam(models.Model):
-    pass
