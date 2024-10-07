@@ -12,7 +12,7 @@ def validator_avatar_weight(file: Any) -> None:
     """Валидатор размера файла для изображений."""
     limit = 5 * 1024 * 1024
     if file.size > limit:
-        raise ValidationError('нюхай бебру')
+        raise ValidationError('Превышен размер файла')
 
 
 class User(AbstractUser):
@@ -23,7 +23,7 @@ class User(AbstractUser):
     gender = models.CharField(
         max_length=6,
         choices=GENDERS.choices,
-        default=GENDERS.MALE,
+        default=None,
         )
     avatar = models.ImageField(
         verbose_name='Avatar',
@@ -94,16 +94,16 @@ class Team(models.Model):
         verbose_name='Команда'
         verbose_name_plural='Команды'
     
-    def add_member(self, user: User, reole: str = 'participant') -> None:
+    def add_member(self, user: User, role: str = 'participant') -> None:
         """ 
         Добавляет пользователя в команду.
         Если пользователь уже в команде, выбрасывает исключение.
         """
         if not TeamMembership.objects.filter(team=self, user=user).exists():
-            TeamMembership.objects.create(team=self, user=user, reole=reole)
-        raise ValidationError(
-            f'Пользователь {user.username} уже в команде'
-        )
+            TeamMembership.objects.create(team=self, user=user, role=role)
+            raise ValidationError(
+                f'Пользователь {user.username} уже в команде'
+            )
 
     def is_creator(self, user: User) -> bool:
         """Проверяет, является ли пользователь создателем команды."""
@@ -115,47 +115,54 @@ class Team(models.Model):
 
     def remove_member(
             self,
-            user_to_remover: User,
-            current_user: User
+            user_to_remove: User,
+            current_user: User,
+            current_user_role: str,
     ) -> None:
         """
         Удаляет пользователя из команды.
         Если пользователь не в команде, выдает исключение.
         Только для создателей команды.
         """
-        if not self.is_creator(current_user):
+        if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
-        if user_to_remover == current_user:
+        if user_to_remove == current_user:
             raise ValidationError('Вы не можете удалить себя')
         try:
             member = TeamMembership.objects.get(
                 team=self,
-                user=user_to_remover
+                user=user_to_remove
             )
             member.delete()
         except TeamMembership.DoesNotExist:
             raise ValidationError(
-                f'Пользователь {user_to_remover.username} не в команде'
+                f'Пользователь {user_to_remove.username} не в команде'
             )
     
-    def set_status_active(self, current_user: User) -> None:
+    def set_status_active(
+            self,
+            current_user_role: str,
+        ) -> None:
         """
         Устанавливает статус команды ACTIVE.
         Только для создателей команды.
         """
-        if not self.is_creator(current_user):
+        if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
         if self.status == self.STATUS.ACTIVE:
             raise ValidationError('Статус уже установлен')
         self.status = self.STATUS.ACTIVE
         self.save()
 
-    def set_status_disbanded(self, current_user: User) -> None:
+    def set_status_disbanded(
+            self,
+            current_user_role: str,
+        ) -> None:
         """
         Устанавливает статус команды DISBANED.
         Только для создателей команды.
         """
-        if not self.is_creator(current_user):
+        if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
         if self.status == self.STATUS.DISBANED:
             raise ValidationError('Статус уже установлен')
@@ -172,7 +179,7 @@ class Team(models.Model):
 class TeamMembership(models.Model):
     class ROLECHOICES(TextChoices):
         CREATOR = 'creator', 'Creator'
-        PARTICIPANT = 'participant', 'Participant'
+        MEMBER = 'member', 'Member'
 
     team = models.ForeignKey(
         Team,
