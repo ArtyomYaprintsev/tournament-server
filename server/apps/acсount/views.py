@@ -10,6 +10,13 @@ from rest_framework.permissions import IsAuthenticated
 
 
 class UserListView(generics.ListAPIView):
+    """
+    Представление для получения списка пользователей.
+
+    Методы:
+    - GET: Возвращает список пользователей,фильтруя по имени
+        пользователя, если оно передано в параметрах запроса.
+    """
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated,)
 
@@ -22,6 +29,18 @@ class UserListView(generics.ListAPIView):
     
 
 class UserDetailView(generics.RetrieveAPIView):
+    """
+    Представление для получения деталей пользователя.
+
+    Использует разные сериализаторы в зависимости от метода запроса:
+    - UserDetailSerializer для GET-запросов.
+    - UserUpdateSerializer для PUT и PATCH запросов.
+
+    Методы:
+    - GET: Возвращает информацию о пользователе.
+    - PUT: Обновляет информацию о пользователе.
+    - PATCH: Частично обновляет информацию о пользователе.
+    """
     queryset = User.objects.all()
     permission_classes = (IsAuthenticated,)
 
