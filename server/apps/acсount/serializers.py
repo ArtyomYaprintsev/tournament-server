@@ -23,11 +23,7 @@ class UserDetailSerializer(UserSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True)
     class Meta(UserSerializer.Meta):
         model = User
-        fields = [
-            'id',
-            'username',
-            'full_name',
-            'avatar',
+        fields = UserSerializer.Meta.fields + [
             'gender',
             'is_verified',
             'rating'
