@@ -10,4 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 
 class UserListView(generics.ListAPIView):
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated)
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        pass

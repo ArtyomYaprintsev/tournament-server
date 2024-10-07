@@ -4,7 +4,7 @@ from .models import User, Team
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    avatar = serializers.ImageField(required=False, allow_null=True) # 上传图片
+    avatar = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = User
         fields = [
@@ -18,10 +18,10 @@ class UserSerializer(serializers.ModelSerializer):
         return f'{odj.first_name} {odj.last_name}'
 
 
-class UserDetailSerializer(serializers.ModelSerializer):
+class UserDetailSerializer(UserSerializer):
     full_name = serializers.SerializerMethodField()
     avatar = serializers.ImageField(required=False, allow_null=True)
-    class Meta:
+    class Meta(UserSerializer.Meta):
         model = User
         fields = [
             'id',
@@ -32,9 +32,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'is_verified',
             'rating'
         ]
-
-    def get_full_name(self, odj) -> str:
-        return f'{odj.first_name} {odj.last_name}'
+        
     
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
