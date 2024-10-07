@@ -22,6 +22,7 @@ class UserListView(generics.ListAPIView):
     
 
 class UserDetailView(generics.RetrieveAPIView):
+    queryset = User.objects.all()
     permission_classes = (IsAuthenticated,)
 
     def get_serializer_class(self):
@@ -30,20 +31,6 @@ class UserDetailView(generics.RetrieveAPIView):
         return UserDetailSerializer
 
     def get_object(self):
-        return self.request.user
-    
-
-class AnotherUserView(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserDetailSerializer
-    permission_classes = (IsAuthenticated,)
-
-
-class UserUpdateView(generics.UpdateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserUpdateSerializer
-    permission_classes = (IsAuthenticated,)
-
-    def get_object(self):
-        return self.request.user
-
+        if self.kwargs.get('pk') == str(self.request.user.pk):
+            return self.request.user
+        return super().get_object()

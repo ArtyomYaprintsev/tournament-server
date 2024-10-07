@@ -14,8 +14,8 @@ class UserSerializer(serializers.ModelSerializer):
             'avatar',
         ]
 
-    def get_full_name(self, odj) -> str:
-        return f'{odj.first_name} {odj.last_name}'
+    def get_full_name(self, obj) -> str:
+        return f'{obj.first_name} {obj.last_name}'
 
 
 class UserDetailSerializer(UserSerializer):
