@@ -8,7 +8,7 @@
     "editor.rulers": [79],
   
     // Disable pylance type checking because we want to use mypy for this
-    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.typeCheckingMode": "basic",
   
     // Enable linting by flake8 and mypy
     "python.linting.flake8Enabled": true,
@@ -16,6 +16,15 @@
   
     // Enable using pytest for testing
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.formatOnSave": true
+    },
+    "black-formatter.args": [
+      "--line-length",
+      "79"
+    ],
   }
   
