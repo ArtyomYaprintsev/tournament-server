@@ -9,7 +9,15 @@ from django.utils import timezone
     
 
 def validator_avatar_weight(file: Any) -> None:
-    """Валидатор размера файла для изображений."""
+    """
+    Валидатор размера файла для изображений.
+    Проверяет, не превышает ли размер загружаемого файла 5 МБ.
+
+    - file: объект файла, который будет проверяться на размер.
+
+    Исключения:
+    - ValidationError: Если размер файла превышает 5 МБ.
+    """
     limit = 5 * 1024 * 1024
     if file.size > limit:
         raise ValidationError('Превышен размер файла')
@@ -95,23 +103,21 @@ class Team(models.Model):
         verbose_name_plural='Команды'
     
     def add_member(self, user: User, role: str = 'participant') -> None:
-        """ 
+        """
         Добавляет пользователя в команду.
-        Если пользователь уже в команде, выбрасывает исключение.
+
+        - user: объект пользователя, который будет добавлен в команду.
+        - role: строка, определяющая роль пользователя в команде. 
+                По умолчанию устанавливается 'participant'.
+
+        Исключения:
+        - ValidationError: Если пользователь уже является членом команды.
         """
         if not TeamMembership.objects.filter(team=self, user=user).exists():
             TeamMembership.objects.create(team=self, user=user, role=role)
             raise ValidationError(
                 f'Пользователь {user.username} уже в команде'
             )
-
-    def is_creator(self, user: User) -> bool:
-        """Проверяет, является ли пользователь создателем команды."""
-        try:
-            membership = TeamMembership.objects.get(team=self, user=user)
-            return membership.role == self.ROLECHOICES.CREATOR
-        except TeamMembership.DoesNotExist:
-            return False
 
     def remove_member(
             self,
@@ -121,8 +127,18 @@ class Team(models.Model):
     ) -> None:
         """
         Удаляет пользователя из команды.
-        Если пользователь не в команде, выдает исключение.
-        Только для создателей команды.
+
+        - user_to_remove: объект пользователя,которого необходимо
+            удалить из команды.
+        - current_user: объект текущего пользователя, запрашивающего удаление.
+        - current_user_role: строка, определяющая роль текущего
+            пользователя в команде.
+
+        Исключения:
+        - ValidationError: Если текущий пользователь
+            не является создателем команды.
+        - ValidationError: Если текущий пользователь пытается удалить себя.
+        - ValidationError: Если пользователь не является членом команды.
         """
         if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
@@ -145,7 +161,14 @@ class Team(models.Model):
         ) -> None:
         """
         Устанавливает статус команды ACTIVE.
-        Только для создателей команды.
+
+        - current_user_role: строка, определяющая роль
+            текущего пользователя в команде.
+
+        Исключения:
+        - ValidationError: Если текущий пользователь не является
+            создателем команды.
+        - ValidationError: Если статус команды уже установлен на ACTIVE.
         """
         if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
@@ -160,7 +183,14 @@ class Team(models.Model):
         ) -> None:
         """
         Устанавливает статус команды DISBANED.
-        Только для создателей команды.
+
+        - current_user_role: строка, определяющая роль
+            текущего пользователя в команде.
+
+        Исключения:
+        - ValidationError: Если текущий пользователь
+            не является создателем команды.
+        - ValidationError: Если статус команды уже установлен на DISBANED.
         """
         if current_user_role != self.ROLECHOICES.CREATOR:
             raise ValidationError('Вы не являетесь создателем команды')
@@ -174,7 +204,6 @@ class Team(models.Model):
         """Возвращает QuerySet участников команды."""
         return self.membership.select_related('user').all()
         
-
 
 class TeamMembership(models.Model):
     class ROLECHOICES(TextChoices):
