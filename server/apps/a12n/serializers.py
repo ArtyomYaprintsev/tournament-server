@@ -1,8 +1,16 @@
-from django.core import serializers
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.settings import api_settings
+
+from django.utils import timezone
+from django.conf import settings
+from datetime import timedelta
+
 from apps.acсount.models import User
+from .models import UserSession
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -38,3 +46,40 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+    
+
+    class UserLoginSerializer(serializers.Serializer):
+        username = serializers.CharField(required=True)
+        password = serializers.CharField(
+            write_only=True,
+            required=True,
+            )
+        user = User.objects.get(username=username).first()
+
+        def validate(self, attrs):
+            user = User.objects.get(username=attrs['username']).first()
+            if user is None or not user.check_password(password):
+                raise serializers.ValidationError('Invalid data')
+            
+            user_session = UserSession.objects.filter(user=user)
+            if user_session.count() >= 5:
+                user_session.order_by('created_at').first()
+                if user_session:
+                    user_session.delete()
+
+            refresh_token = RefreshToken.for_user(user)
+            access_token = str(refresh_token.access_token)
+
+            refresh_token_lifetime = api_settings.REFRESH_TOKEN_LIFETIME
+
+            session = UserSession.obgects.create(
+                user=user,
+                access_token=access_token,
+                expires_in=timezone.now() + refresh_token_lifetime,
+            )
+
+            return {
+                'refresh_token': str(refresh_token),
+                'access_token': str(refresh_token),
+                'refresh_token_uuid': str(session.refresh_token),
+            }

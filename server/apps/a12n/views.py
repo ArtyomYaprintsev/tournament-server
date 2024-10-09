@@ -21,3 +21,21 @@ class RegistrationAPIView(APIView):
                 'refresh': str(refresh),
                 'access': str(refresh.access_token),
             }, status=status.HTTP_201_CREATED)
+        
+
+class LoginAPIView(APIView):
+
+    def post(self, request):
+        data = request.data
+        username = data.get('username')
+        password = data.get('password')
+        if username is None:
+            return Response(
+                {'error': 'username is required',},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        if password is None:
+            return Response(
+                { 'error': 'password is required',},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
