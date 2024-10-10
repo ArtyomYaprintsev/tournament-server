@@ -58,3 +58,25 @@ class LoginAPIView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST,
             )
+    
+
+class LogoutAPIView(APIView):
+    
+    def post(self, request):
+        refresh_token = request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            session = UserSession.objects.get(refresh_token=refresh_token)
+            session.delete()
+        except UserSession.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+        response = Response(status=status.HTTP_200_OK)
+        response.delete_cookie(
+            'refresh_token',
+            path='/api/auth/',
+        )
+        return response
