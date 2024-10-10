@@ -1,6 +1,5 @@
 from django.db import models
 from apps.acсount.models import User
-import uuid
 
 
 class UserSession(models.Model):
@@ -8,12 +7,11 @@ class UserSession(models.Model):
         User,
         on_delete=models.CASCADE,
     )
-    refresh_token = models.UUIDField(
-        default=uuid.uuid4,
+    refresh_token = models.CharField(
         editable=False,
         unique=True,
     )
-    expires_at = models.DateTimeField()
+    expires_in = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True,)
 
     def __str__(self):
