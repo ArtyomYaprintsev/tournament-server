@@ -5,26 +5,45 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import UserRegisterSerializer, UserLoginSerializer
 from .models import UserSession
+from apps.account.models import User
+
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import BadHeaderError, send_mail
 
 from datetime import timezone
 
 
-# class RegistrationAPIView(APIView):
+class RegistrationAPIView(APIView):
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save(is_active=False)
 
-#     def post(self, request):
-#         serializer = UserRegisterSerializer(data=request.data)
-#         if serializer.is_valid():
-#             user = serializer.save()
-#             refresh = RefreshToken.for_user(user)
-#             refresh.payload.update({
-#                 'user_id': user.id,
-#                 'username': user.username
-#             })
-#             return Response({
-#                 'refresh': str(refresh),
-#                 'access': str(refresh.access_token),
-#             }, status=status.HTTP_201_CREATED)
-        
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+            confirm_url = f'/confirm/{uid}/{token}'
+            
+            try:
+                send_mail(
+                    'Register confirm',
+                    f'Hi, {user.username}, please confirm your registration,
+                    follow this link: {confirm_url}',
+                    'example@example.com',
+                    [user.email],
+                )
+            except BadHeaderError:
+                return Response(
+                    {'detail': 'Error sending confirmation. Try again.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+            )
 
 class LoginAPIView(APIView):
 
