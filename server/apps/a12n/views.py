@@ -16,6 +16,13 @@ from datetime import timezone
 
 
 class RegistrationAPIView(APIView):
+    """
+    Представление для регистрации пользователя.
+
+    Методы:
+        - POST: Регистрирует пользователя и отправляет письмо с
+        подтверждением регистрации.
+    """
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -47,14 +54,28 @@ class RegistrationAPIView(APIView):
 
 
 class ActivateAccountAPIView(APIView):
+    """
+    Представление для активации учетной записи пользователя
+    по ссылке из письма.
+
+    Методы:
+        - GET: Активирует учетную запись пользователя и
+        возвращает токены доступа.
+    """
     def get(self, request, uidb64, token):
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            User.DoesNotExist
+        ):
             user = None
 
-        if user is not None and default_token_generator.check_token(user, token):
+        if user is not None and \
+        default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
 
@@ -72,7 +93,13 @@ class ActivateAccountAPIView(APIView):
                 )
 
 class LoginAPIView(APIView):
+    """
+    Представление для аутентификации пользователя и выдачи JWT токена.
 
+    Методы:
+        - POST: Принимает данные пользователя и возвращает при успешной
+        аутентификации `access_token` в теле ответа и куки с `refresh_token`.
+    """
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -106,7 +133,13 @@ class LoginAPIView(APIView):
     
 
 class LogoutAPIView(APIView):
-    
+    """
+    Представление для выхода пользователя из системы.
+
+    Методы:
+        - POST: Получает `refresh_token` из куки, затем удаляет
+        сеанс пользователя.
+    """
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
 
