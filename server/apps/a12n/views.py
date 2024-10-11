@@ -117,7 +117,10 @@ class LogoutAPIView(APIView):
             session = UserSession.objects.get(refresh_token=refresh_token)
             session.delete()
         except UserSession.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Invalid refresh token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         
         response = Response(status=status.HTTP_200_OK)
         response.delete_cookie(
