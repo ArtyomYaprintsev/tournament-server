@@ -7,7 +7,6 @@ from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
 
-from datetime import timezone
 import re
 
 from apps.acсount.models import User
@@ -62,15 +61,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             Q(username=attrs['username']) | Q(email=attrs['email'])
         ).values('username', 'email')
 
-        errors = {}
-        for user in user_exists:
-            if user['username'] == attrs['username']:
-                errors['username'] = 'Username already exists'
-            if user['email'] == attrs['email']:
-                errors['email'] = 'email already exists'
-            return errors
-        if errors:
-            raise serializers.ValidationError(errors)
+        if user_exists.exists():
+            raise serializers.ValidationError(
+                'User with this username or email already exists'
+            )
 
         return attrs
 
@@ -91,9 +85,9 @@ class UserLoginSerializer(serializers.Serializer):
         )
     
     def validate(self, attrs):
-        user = User.objects.get(username=attrs['username']).first()
+        user = User.objects.filter(username=attrs['username']).first()
         if user is None or not user.check_password(attrs['password']):
-            raise serializers.ValidationError('Invalid data')
+            raise serializers.ValidationError('Invalid username or password')
         
         user_session = UserSession.objects.filter(user=user)
         if user_session.count() > 5:
