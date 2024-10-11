@@ -5,49 +5,82 @@ from rest_framework_simplejwt.settings import api_settings
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Q
 
 from datetime import timezone
+import re
 
 from apps.acсount.models import User
 from .models import UserSession
 
 
-# class UserRegisterSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(
-#         write_only=True,
-#         required=True,
-#         style={'input_type': 'password',},
-#         min_length=8,
-#         )
-#     password_confirm = serializers.CharField(
-#         write_only=True,
-#         required=True,
-#         style={'input_type': 'password',},
-#         lable='Confirm password',
-#     )
+class UserRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password',},
+        min_length=8,
+        )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password',},
+        label='Confirm password',
+    )
+    email = serializers.EmailField(required=True,)
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'password',
+            'password_confirm',
+        ]
 
-#     class Meta:
-#         model = User
-#         fields = [
-#             'username',
-#             'first_name',
-#             'lastname',
-#             'password',
-#             'password_confirm',
-#         ]
+    def validate_username(self, value):
+        pass
 
-#     def validate(self, attrs):
-#         if attrs['password'] != attrs['password_confirm']:
-#             raise serializers.ValidationError('Passwords dont match')
-#         return attrs
+    def validate_email(self, value):
+        pass
 
-#     def create(self, validated_data):
-#         validated_data.pop('password_confirm')
-#         password = validated_data.pop('password')
-#         user = User(**validated_data)
-#         user.set_password(password)
-#         user.save()
-#         return user
+    def validate_first_name(self, value):
+        pass
+
+    def validate_last_name(self, value):
+        pass
+
+    def validate_password(self, value):
+        pass
+
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError('Passwords dont match')
+        
+        user_exists = User.objects.filter(
+            Q(username=attrs['username']) | Q(email=attrs['email'])
+        ).values('username', 'email')
+
+        errors = {}
+        for user in user_exists:
+            if user['username'] == attrs['username']:
+                errors['username'] = 'Username already exists'
+            if user['email'] == attrs['email']:
+                errors['email'] = 'email already exists'
+            return errors
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
     
 
 class UserLoginSerializer(serializers.Serializer):
