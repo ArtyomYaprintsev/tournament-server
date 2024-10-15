@@ -1,13 +1,18 @@
-from django.db import models
-from apps.acсount.models import User
+import uuid
 
+from django.contrib.auth import get_user_model
+from django.db import models
+
+User = get_user_model()
 
 class UserSession(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
     )
-    refresh_token = models.CharField(
+    fingerprint = models.CharField(max_length=255,)
+    refresh_token = models.UUIDField(
+        default=uuid.uuid4,
         editable=False,
         unique=True,
     )

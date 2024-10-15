@@ -1,17 +1,17 @@
-from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.settings import api_settings
-
-from django.contrib.auth import authenticate
-from django.utils import timezone
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils import timezone
 
-import re
+from rest_framework import serializers
+from rest_framework_simplejwt.settings import api_settings
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.acсount.models import User
 from .models import UserSession
 
+
+
+User = get_user_model()
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -36,22 +36,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'password',
             'password_confirm',
         ]
-
-    def validate_username(self, value):
-        pass
-
-    def validate_email(self, value):
-        pass
-
-    def validate_first_name(self, value):
-        pass
-
-    def validate_last_name(self, value):
-        pass
-
-    def validate_password(self, value):
-        pass
-
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -89,11 +73,9 @@ class UserLoginSerializer(serializers.Serializer):
         if user is None or not user.check_password(attrs['password']):
             raise serializers.ValidationError('Invalid username or password')
         
-        user_session = UserSession.objects.filter(user=user)
+        user_session = UserSession.objects.filter(user=user).all()
         if user_session.count() > 5:
-            old_session = user_session.order_by('created_at').first()
-            if old_session:
-                old_session.delete()
+            user_session.delete()
 
         refresh_token = RefreshToken.for_user(user)
         access_token = str(refresh_token.access_token)
