@@ -92,3 +92,54 @@ class UserLoginSerializer(serializers.Serializer):
             'refresh_token': str(refresh_token),
             'access_token': str(access_token),
         }
+    
+
+class GenerateNewTokenSerializer(serializers.Serializer):
+    refresh_token = serializers.UUIDField()
+    fingerprint = serializers.CharField(max_length=255,)
+
+    def validate(self, attrs):
+        refresh_token = attrs.get('refresh_token')
+        fingerprint = attrs.get('fingerprint')
+
+        try:
+            session = UserSession.objects.get(
+                refresh_token=refresh_token,
+                is_active=True,
+            )
+        except UserSession.DoesNotExist:
+            raise serializers.ValidationError('Invalid refresh token.')
+        
+        if timezone.now() > session.expires_in:
+            raise serializers.ValidationError('Refresh token expired.')
+        
+        if session.fingerprint != fingerprint:
+            raise serializers.ValidationError('Invalid fingerprint.')
+        
+        attrs['rotate_refresh'] = (
+            session.expires_in - timezone.now()
+            ).total_seconds() < 5*86400
+
+        return attrs
+    
+    def save(self, **kwargs):
+        refresh_token = self.validated_data.get('refresh_token')
+        session = UserSession.objects.get(
+                refresh_token=refresh_token,
+                s_active=True,
+            )
+        
+        if self.validated_data.get('rotate_refresh'):
+            refresh_token = RefreshToken.for_user(session.user)
+            refresh_token_lifetime = api_settings.REFRESH_TOKEN_LIFETIME
+            session.refresh_token = refresh_token
+            session.expires_in = timezone.now() + refresh_token_lifetime
+            session.save()
+
+        access_token = str(refresh_token.access_token)
+
+        return {
+            'refresh_token': str(refresh_token) if \
+                self.validated_data.get('rotate_refresh') else None,
+            'access_token': str(access_token),
+        }
