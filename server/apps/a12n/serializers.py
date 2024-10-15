@@ -14,6 +14,14 @@ from .models import UserSession
 User = get_user_model()
 
 class UserRegisterSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор для регистрации нового пользователя.
+    
+    Методы:
+        - validate: Проверяет, совпадают ли пароли и существует ли
+        пользователь с таким же именем пользователя или электронной почтой.
+        - create: Создает нового пользователя, устанавливая пароль.
+    """
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -37,7 +45,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'password_confirm',
         ]
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict) -> dict:
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError('Passwords dont match')
         
@@ -47,12 +55,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         if user_exists.exists():
             raise serializers.ValidationError(
-                'User with this username or email already exists'
+                'User with this username or email already exists.'
             )
 
         return attrs
 
-    def create(self, validated_data):
+    def create(self, validated_data: dict) -> User:
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
         user = User(**validated_data)
@@ -62,13 +70,21 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     
 
 class UserLoginSerializer(serializers.Serializer):
+    """
+    Сериализатор для аутентификации пользователя.
+
+    Методы:
+        - validate: Проверяет корректность введенных данных и количество
+        активных сессий (если их > 5 - удаляются все).
+        - create: Создает сессию пользователя и возвращает токены.
+    """
     username = serializers.CharField(required=True)
     password = serializers.CharField(
         write_only=True,
         required=True,
         )
     
-    def validate(self, attrs):
+    def validate(self, attrs: dict) -> dict:
         user = User.objects.filter(username=attrs['username']).first()
         if user is None or not user.check_password(attrs['password']):
             raise serializers.ValidationError('Invalid username or password')
@@ -79,7 +95,7 @@ class UserLoginSerializer(serializers.Serializer):
 
         return attrs
     
-    def create(self, validated_data):
+    def create(self, validated_data: dict) -> dict:
         user = validated_data['user']
 
         refresh_token = RefreshToken.for_user(user)
@@ -99,10 +115,19 @@ class UserLoginSerializer(serializers.Serializer):
         
 
 class GenerateNewTokenSerializer(serializers.Serializer):
+    """
+    Сериализатор для генерации нового токена доступа на основе refresh токена.
+    
+    Методы:
+        - validate: Проверяет действительность refresh токена, срок
+        его действия и совпадение fingerprint-a.
+        - save: Обновляет refresh токен и возвращает новый токен доступа,
+        если необходимо.
+    """
     refresh_token = serializers.CharField(max_length=255,)
     fingerprint = serializers.CharField(max_length=255,)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict) -> dict:
         refresh_token = attrs.get('refresh_token')
         fingerprint = attrs.get('fingerprint')
 
@@ -127,7 +152,7 @@ class GenerateNewTokenSerializer(serializers.Serializer):
 
         return attrs
     
-    def save(self, **kwargs):
+    def save(self, **kwargs) -> dict:
         refresh_token = RefreshToken(self.validated_data.get('refresh_token'))
         session = self.validated_data.get('session')
         
