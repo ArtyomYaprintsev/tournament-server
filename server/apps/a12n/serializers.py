@@ -77,9 +77,13 @@ class UserLoginSerializer(serializers.Serializer):
         if user_session.count() > 5:
             user_session.delete()
 
+        return attrs
+    
+    def create(self, validated_data):
+        user = validated_data['user']
+
         refresh_token = RefreshToken.for_user(user)
         access_token = str(refresh_token.access_token)
-
         refresh_token_lifetime = api_settings.REFRESH_TOKEN_LIFETIME
 
         session = UserSession.objects.create(
@@ -92,10 +96,10 @@ class UserLoginSerializer(serializers.Serializer):
             'refresh_token': str(refresh_token),
             'access_token': str(access_token),
         }
-    
+        
 
 class GenerateNewTokenSerializer(serializers.Serializer):
-    refresh_token = serializers.UUIDField()
+    refresh_token = serializers.CharField(max_length=255,)
     fingerprint = serializers.CharField(max_length=255,)
 
     def validate(self, attrs):
@@ -107,6 +111,7 @@ class GenerateNewTokenSerializer(serializers.Serializer):
                 refresh_token=refresh_token,
                 is_active=True,
             )
+            attrs['session'] = session
         except UserSession.DoesNotExist:
             raise serializers.ValidationError('Invalid refresh token.')
         
@@ -123,11 +128,8 @@ class GenerateNewTokenSerializer(serializers.Serializer):
         return attrs
     
     def save(self, **kwargs):
-        refresh_token = self.validated_data.get('refresh_token')
-        session = UserSession.objects.get(
-                refresh_token=refresh_token,
-                s_active=True,
-            )
+        refresh_token = RefreshToken(self.validated_data.get('refresh_token'))
+        session = self.validated_data.get('session')
         
         if self.validated_data.get('rotate_refresh'):
             refresh_token = RefreshToken.for_user(session.user)
