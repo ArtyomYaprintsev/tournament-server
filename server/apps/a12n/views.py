@@ -11,7 +11,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserSession
-from .serializers import UserRegisterSerializer, UserLoginSerializer
+from .serializers import (
+    UserRegisterSerializer,
+    UserLoginSerializer,
+    GenerateNewTokenSerializer,
+    )
 
 User = get_user_model()
 
@@ -111,7 +115,7 @@ class LoginAPIView(APIView):
                 session = UserSession.objects.get(
                     refresh_token=data['refresh_token']
                 )
-                expires_at = session.expires_at
+                expires_at = session.expires_in
                 max_age = (expires_at - timezone.now()).total_seconds()
             except UserSession.DoesNotExist:
                 return Response(status=status.HTTP_400_BAD_REQUEST,)
@@ -144,7 +148,6 @@ class LogoutAPIView(APIView):
     """
     def post(self, request):
         refresh_token = request.COOKIES.get('refresh_token')
-
         if not refresh_token:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
@@ -163,3 +166,42 @@ class LogoutAPIView(APIView):
             path='/api/auth/',
         )
         return response
+    
+
+class TokensRefreshAPIView(APIView):
+    """
+    Представление для обновления acces и refresh токенов.
+
+    Методы:
+        - POST: Принимает данные для обновления токена через сереализатор.
+        Если refresh присутствует, возвращает куку с новой парой токенов,
+        в противном случае вернет только access.
+    """
+    def post(self, request):
+        serializer = GenerateNewTokenSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.save()
+
+            response = Response(
+                {'access_token': data['access_token']},
+                status=status.HTTP_200_OK
+            )
+
+            if data['refresh_token'] is not None:
+                try:
+                    session = UserSession.objects.get(
+                        refresh_token=data['refresh_token']
+                    )
+                    expires_at = session.expires_in
+                    max_age = (expires_at - timezone.now()).total_seconds()
+                except UserSession.DoesNotExist:
+                    return Response(status=status.HTTP_400_BAD_REQUEST,)
+                response.set_cookie(
+                    'refresh_token',
+                    data['refresh_token'],
+                    httponly=True,
+                    path= '/api/auth/',
+                    max_age=max_age,
+                )
+
+            return response
